@@ -93,7 +93,7 @@ final class EffectEngineTests: XCTestCase {
         // Typing starts at 0.6 s; the ease-out fade takes about 1 s.
         XCTAssertEqual(run.at(2.0).level, 0)
         XCTAssertFalse(run.at(2.0).windowVisible)
-        XCTAssertEqual(run.at(2.0).reason, .recentInput)
+        XCTAssertEqual(run.at(2.0).reason, .dismissed)
     }
 
     func testHoldingTheLidKeepsTheBlur() {
@@ -140,7 +140,7 @@ final class EffectEngineTests: XCTestCase {
         let run = replay(duration: 5, angle: close(to: 40, seconds: 0.3)) { t, input in
             if t >= 2 { input.secondsSinceInput = 0 }
         }
-        let i = run.outputs.firstIndex { $0.out.reason == .recentInput }!
+        let i = run.outputs.firstIndex { $0.out.reason == .dismissed }!
         let (t0, l0) = (run.outputs[i].t, run.outputs[i - 1].out.level)
         let tau = EngineConstants.fadeTimeConstant
         XCTAssertEqual(run.at(t0 + tau).level / l0, exp(-1), accuracy: 0.08)   // fastest at first, then eases
@@ -174,7 +174,7 @@ final class EffectEngineTests: XCTestCase {
         let trace = close(to: 30, seconds: 0.3)
         let run = replay(duration: 2, angle: { t in t < 0.45 ? trace(t) : nil })
         XCTAssertEqual(run.at(0.45 + EngineConstants.staleTimeout + 0.02).level, 0)
-        XCTAssertEqual(run.at(1.5).reason, .stale)
+        XCTAssertEqual(run.at(1.5).reason, .waitingForSensor)
     }
 
     func testGarbageValuesClear() {
@@ -219,7 +219,7 @@ final class EffectEngineTests: XCTestCase {
             input.now += 0   // keep sample within staleTimeout so only the wake gate applies
         }
         XCTAssertEqual(run.at(0.3).level, 0)
-        XCTAssertEqual(run.at(0.3).reason, .justWoke)
+        XCTAssertEqual(run.at(0.3).reason, .waitingForSensor)
     }
 
     func testWatchdogDismissesAfterVeryLongNearFullHold() {
@@ -249,9 +249,7 @@ final class EffectEngineTests: XCTestCase {
         var input = EngineInput(now: 1)
         input.sample = AngleSample(angle: 30, time: 1)
         input.enabled = false
-        input.disabledReason = .panic
         XCTAssertEqual(EffectEngine.step(EngineMemory(), input).1.appState, .disabled)
-        XCTAssertEqual(EffectEngine.step(EngineMemory(), input).1.reason, .panic)
         input.enabled = true
         input.sensorStatus = .notFound
         XCTAssertEqual(EffectEngine.step(EngineMemory(), input).1.appState, .unsupported)

@@ -4,24 +4,24 @@ import ServiceManagement
 /// First-launch and reopen window. Keeps the app reachable when the menu-bar icon is hidden behind the notch.
 @MainActor
 final class WelcomeWindowController: NSObject, NSWindowDelegate {
-    var supported: () -> Bool = { true }
-    var isEnabled: () -> Bool = { false }
-    var onPreview: () -> Void = {}
-    var onEnable: () -> Void = {}
-    var onClose: () -> Void = {}
+    private unowned let app: AppDelegate
     private var window: NSWindow?
+
+    init(app: AppDelegate) { self.app = app }
 
     func show() {
         window?.close()
+        let supported = app.sensor.status != .notFound
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 440, height: 300),
                          styleMask: [.titled, .closable], backing: .buffered, defer: false)
         w.title = "LidBlur"
         w.isReleasedWhenClosed = false
         w.delegate = self
 
-        let body = supported()
-            ? "LidBlur blurs and dims the MacBook screen as you close the lid, and clears it as you open the lid or use the keyboard or trackpad. "
-              + "It only affects the built-in display.\n\nThis is a visual effect, not a privacy tool.\n\n"
+        let body = supported
+            ? "LidBlur blurs and dims the MacBook screen as you close the lid, and clears it as you open the lid "
+              + "or use the keyboard or trackpad. It only affects the built-in display.\n\n"
+              + "This is a visual effect, not a privacy tool.\n\n"
               + "If the screen ever stays blurred, press Control-Option-Command-B to quit LidBlur immediately.\n\n"
               + "You can change the angle where the blur starts from the menu-bar icon."
             : "This Mac has no lid-angle sensor LidBlur can read, so LidBlur can't do anything here.\n\nYou can quit it from the menu bar."
@@ -30,13 +30,12 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
 
         let preview = NSButton(title: "Preview Effect", target: self, action: #selector(previewPressed))
         let enable = NSButton(title: "Enable", target: self, action: #selector(enablePressed))
-        enable.isHidden = !supported() || isEnabled()
-        let login = NSButton(checkboxWithTitle: "Launch at Login", target: self, action: #selector(loginToggled(_:)))
+        enable.isHidden = !supported || app.settings.enabled
+        let login = NSButton(checkboxWithTitle: "Launch at Login", target: self, action: #selector(loginToggled))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        login.isEnabled = supported()
+        login.isEnabled = supported
 
-        let buttons = NSStackView(views: [preview, enable])
-        let stack = NSStackView(views: [text, login, buttons])
+        let stack = NSStackView(views: [text, login, NSStackView(views: [preview, enable])])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 16
@@ -48,14 +47,11 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
         w.makeKeyAndOrderFront(nil)
     }
 
-    func windowWillClose(_ notification: Notification) { onClose() }
+    func windowWillClose(_ notification: Notification) { app.settings.hasLaunchedBefore = true }
 
-    @objc private func previewPressed() { onPreview() }
-    @objc private func enablePressed(_ sender: NSButton) { onEnable(); sender.isHidden = true }
+    @objc private func previewPressed() { app.startPreview() }
+    @objc private func enablePressed(_ sender: NSButton) { app.setEnabled(true); sender.isHidden = true }
     @objc private func loginToggled(_ sender: NSButton) {
-        if let err = MenuBarController.setLaunchAtLogin(sender.state == .on) {
-            sender.state = sender.state == .on ? .off : .on
-            NSAlert(error: NSError(domain: "LidBlur", code: 1, userInfo: [NSLocalizedDescriptionKey: err])).runModal()
-        }
+        if !MenuBarController.setLaunchAtLogin(sender.state == .on) { sender.state = sender.state == .on ? .off : .on }
     }
 }

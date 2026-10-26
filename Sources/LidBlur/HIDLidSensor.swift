@@ -2,7 +2,7 @@ import Foundation
 import IOKit.hid
 import LidBlurCore
 
-/// The only file that touches IOKit HID. Polled by the scheduler (the sensor only pushes a ~1 Hz heartbeat).
+/// The only file that touches IOKit HID. Polled by the scheduler: the sensor only pushes a ~1 Hz heartbeat on its own.
 @MainActor
 final class HIDLidSensor {
     private(set) var status = SensorStatus.searching { didSet { if status != oldValue { onStatus?(status) } } }
@@ -62,6 +62,4 @@ final class HIDLidSensor {
         latest = AngleSample(angle: angle, time: now)
         status = .found
     }
-
-    func stop() { IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone)); device = nil; latest = nil }
 }

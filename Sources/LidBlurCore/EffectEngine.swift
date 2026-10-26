@@ -1,6 +1,6 @@
 import Foundation
 
-/// Every tunable number lives here. Values are provisional until the lidprobe experiment answers Q1–Q4.
+/// Every tunable number lives here.
 public enum EngineConstants {
     /// At 60° the screen is already hard to see from a normal seat, so the effect starts earlier.
     public static let defaultStartAngle = 80.0
@@ -15,14 +15,13 @@ public enum EngineConstants {
     public static let downMoveWindow = 0.15
     public static let emaTimeConstant = 0.015
     public static let staleTimeout = 0.5
-    /// While the lid moves (closing or opening) the level eases toward the angle-driven target with this time
-    /// constant, so it stays in step with the hinge and coarse or late samples never make it jump.
+    /// While the lid moves, the level eases toward the angle-driven target with this time constant,
+    /// so it stays in step with the hinge and coarse or late samples never make it jump.
     public static let followTimeConstant = 0.03
-    /// When the effect is dismissed (lid held still, typing), it fades out on an ease-out curve with this time
-    /// constant: ~1 s from full to invisible, long enough to read as a deliberate fade.
+    /// A dismissed blur fades out on an ease-out curve with this time constant (~1 s from full to invisible).
     public static let fadeTimeConstant = 0.15
-    /// Last-resort safety net: a near-full blur with no input for this long is dismissed (faded out),
-    /// in case input detection or the sensor is wrong. Long, because holding the lid still is meant to keep the blur.
+    /// Last-resort safety net: a near-full blur with no input for this long is dismissed, in case input
+    /// detection or the sensor is wrong. Long, because holding the lid still is meant to keep the blur.
     public static let watchdogLevel = 0.9
     public static let watchdogDuration = 120.0
     public static let bandMargin = 5.0
@@ -31,12 +30,23 @@ public enum EngineConstants {
 
 public enum SensorStatus: String, Sendable { case searching, found, notFound, silent, invalid }
 
-public enum AppState: String, Sendable { case disabled, unsupported, idle, active, suspended }
+/// Raw values are the menu's status text.
+public enum AppState: String, Sendable {
+    case disabled = "Disabled", unsupported = "Unsupported", idle = "Idle", active = "Active", suspended = "Suspended"
+}
 
+/// Why the effect is off. Raw values are the menu's status text.
 public enum Reason: String, Sendable {
-    case userDisabled, panic, watchdog, noSensor, sensorSilent, sensorInvalid
-    case noBuiltInDisplay, mirrored, reconfiguring, asleep, sessionInactive, justWoke
-    case stale, dismissed, recentInput, opening, none
+    case none = ""
+    case noSensor = "no lid-angle sensor"
+    case sensorNotResponding = "sensor not responding"
+    case noBuiltInDisplay = "built-in display off"
+    case mirrored = "display mirrored"
+    case reconfiguring = "displays changing"
+    case asleep = "asleep"
+    case sessionInactive = "session inactive"
+    case waitingForSensor = "waiting for sensor"
+    case dismissed = "dismissed until the lid closes further"
 }
 
 public struct AngleSample: Equatable, Sendable {
@@ -62,7 +72,6 @@ public struct SystemState: Equatable, Sendable {
 public struct EngineInput: Sendable {
     public var now: TimeInterval
     public var enabled = true
-    public var disabledReason: Reason?
     public var sensorStatus = SensorStatus.found
     public var sample: AngleSample?
     public var system = SystemState()
@@ -80,7 +89,7 @@ public struct EngineMemory: Sendable {
     /// Set by keyboard/pointer input (or the watchdog); cleared when the lid closes further.
     var dismissed = false
     var lastStepTime: TimeInterval?
-    public internal(set) var level = 0.0
+    var level = 0.0
     var highLevelSince: TimeInterval?
     public init() {}
 }
@@ -90,17 +99,16 @@ public struct EngineOutput: Equatable, Sendable {
     public var windowVisible = false
     public var appState = AppState.idle
     public var reason = Reason.none
-    public var filteredAngle: Double?
     /// True when the scheduler should tick every display frame instead of the idle rate.
     public var inBand = false
 
-    public init(level: Double = 0, windowVisible: Bool = false, appState: AppState = .idle, reason: Reason = .none,
-                filteredAngle: Double? = nil, inBand: Bool = false) {
-        self.level = level; self.windowVisible = windowVisible; self.appState = appState; self.reason = reason
-        self.filteredAngle = filteredAngle; self.inBand = inBand
+    public init(level: Double = 0, windowVisible: Bool = false, appState: AppState = .idle,
+                reason: Reason = .none, inBand: Bool = false) {
+        (self.level, self.windowVisible, self.appState, self.reason, self.inBand) = (level, windowVisible, appState, reason, inBand)
     }
 }
 
+/// Pure decision function: one step of lid angle and system state in, effect level out. No AppKit, no timers.
 public enum EffectEngine {
     public static func step(_ memory: EngineMemory, _ input: EngineInput) -> (EngineMemory, EngineOutput) {
         typealias K = EngineConstants
@@ -120,22 +128,19 @@ public enum EffectEngine {
 
         if let p = input.previewLevel {
             var m = EngineMemory(); m.lastStepTime = input.now
-            let level = min(max(p, 0), 1)
-            m.level = level
-            return (m, EngineOutput(level: level, windowVisible: level > K.visibleThreshold,
-                                    appState: .active, reason: .none, inBand: true))
+            m.level = min(max(p, 0), 1)
+            return (m, EngineOutput(level: m.level, windowVisible: m.level > K.visibleThreshold, appState: .active, inBand: true))
         }
 
-        if !input.enabled { return gated(.disabled, input.disabledReason ?? .userDisabled) }
+        if !input.enabled { return gated(.disabled, .none) }
         switch input.sensorStatus {
         case .notFound: return gated(.unsupported, .noSensor)
-        case .silent: return gated(.unsupported, .sensorSilent)
-        case .invalid: return gated(.unsupported, .sensorInvalid)
+        case .silent, .invalid: return gated(.unsupported, .sensorNotResponding)
         case .searching, .found: break
         }
-        guard let sample = input.sample, input.now - sample.time <= K.staleTimeout else { return gated(.suspended, .stale) }
-        if let wake = sys.lastWakeTime, sample.time <= wake { return gated(.suspended, .justWoke) }
-        guard (0...360).contains(sample.angle) else { return gated(.unsupported, .sensorInvalid) }
+        guard let sample = input.sample, input.now - sample.time <= K.staleTimeout else { return gated(.suspended, .waitingForSensor) }
+        if let wake = sys.lastWakeTime, sample.time <= wake { return gated(.suspended, .waitingForSensor) }
+        guard (0...360).contains(sample.angle) else { return gated(.unsupported, .sensorNotResponding) }
 
         var m = memory
         let dt = m.lastStepTime.map { max(input.now - $0, 0) } ?? 0
@@ -144,8 +149,7 @@ public enum EffectEngine {
         // Filter: short EMA, skipped under Reduce Motion so the effect tracks the raw lid angle.
         if sample.time != m.lastSampleTime {
             if let f = m.filteredAngle, let last = m.lastSampleTime, !sys.reduceMotion {
-                let a = 1 - exp(-(sample.time - last) / K.emaTimeConstant)
-                m.filteredAngle = f + a * (sample.angle - f)
+                m.filteredAngle = f + (1 - exp(-(sample.time - last) / K.emaTimeConstant)) * (sample.angle - f)
             } else {
                 m.filteredAngle = sample.angle
             }
@@ -154,53 +158,34 @@ public enum EffectEngine {
         }
         m.history.removeAll { sample.time - $0.time > K.downMoveWindow }
         let f = m.filteredAngle!
-        let delta = f - (m.history.first?.angle ?? f)
-        let movingDown = delta <= -K.downMoveDegrees
-        let movingUp = delta >= K.downMoveDegrees
+        let movingDown = f - (m.history.first?.angle ?? f) <= -K.downMoveDegrees
 
         let fullAngle = min(input.fullAngle, input.startAngle - K.minBandWidth)
         let t = min(max((input.startAngle - f) / (input.startAngle - fullAngle), 0), 1)
         let raw = t * t * (3 - 2 * t)
 
         // Input dismisses the blur until the lid closes further; holding the lid still keeps it.
-        let recentInput = input.secondsSinceInput < K.inputTimeout
-        if recentInput { m.dismissed = true } else if movingDown { m.dismissed = false }
+        if input.secondsSinceInput < K.inputTimeout { m.dismissed = true } else if movingDown { m.dismissed = false }
 
-        var target: Double
-        var reason = Reason.none
-        if m.dismissed {
-            target = 0; reason = recentInput ? .recentInput : .dismissed
-        } else if movingDown {
-            target = raw
-        } else {
-            // Holding or opening: the blur stays or recedes with the lid, never grows without closing motion,
-            // so a low angle seen right after wake can't bring the blur back by itself.
-            target = min(m.level, raw)
-            if movingUp { reason = .opening }
-        }
+        // Holding or opening: the blur stays or recedes with the lid, never grows without closing motion,
+        // so a low angle seen right after wake can't bring the blur back by itself.
+        let target = m.dismissed ? 0 : (movingDown ? raw : min(m.level, raw))
 
         // Exponential approach in both directions: an ease-out that tracks the hinge, never a jump or a hard stop.
         let tau = m.dismissed ? K.fadeTimeConstant : K.followTimeConstant
         m.level += (target - m.level) * (dt > 0 ? 1 - exp(-dt / tau) : 0)
         if m.level < K.visibleThreshold { m.level = 0 }   // end the exponential tail
 
-        var out = EngineOutput()
         if m.level > K.watchdogLevel {
             m.highLevelSince = m.highLevelSince ?? input.now
-            if input.now - m.highLevelSince! > K.watchdogDuration {
-                m.dismissed = true
-                m.highLevelSince = nil
-            }
+            if input.now - m.highLevelSince! > K.watchdogDuration { m.dismissed = true; m.highLevelSince = nil }
         } else {
             m.highLevelSince = nil
         }
 
-        out.level = m.level
-        out.windowVisible = m.level > K.visibleThreshold
-        out.appState = out.windowVisible ? .active : .idle
-        out.reason = reason
-        out.filteredAngle = f
-        out.inBand = f < input.startAngle + K.bandMargin || m.level > 0 || movingDown
-        return (m, out)
+        let visible = m.level > 0
+        return (m, EngineOutput(level: m.level, windowVisible: visible, appState: visible ? .active : .idle,
+                                reason: m.dismissed ? .dismissed : .none,
+                                inBand: f < input.startAngle + K.bandMargin || visible || movingDown))
     }
 }

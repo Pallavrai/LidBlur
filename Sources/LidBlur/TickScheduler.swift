@@ -9,7 +9,7 @@ final class TickScheduler {
     private var link: CADisplayLink?
     private var activity: NSObjectProtocol?
     private let tick: @MainActor () -> Void
-    /// shortcut: 10 Hz idle rate is a guess; lidprobe close measurements (Q1/Q2) should set it.
+    /// Fast enough to catch the start of a close; the engine's motion window is sized to it.
     static let idleInterval = 0.1
 
     init(tick: @escaping @MainActor () -> Void) { self.tick = tick }

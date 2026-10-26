@@ -10,7 +10,6 @@ final class SettingsTests: XCTestCase {
 
     func testDefaults() {
         XCTAssertTrue(settings.enabled)
-        XCTAssertNil(settings.disabledReason)
         XCTAssertEqual(settings.fullAngle, 20)
     }
 
@@ -31,12 +30,5 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(settings.startAngle, 110)
         settings.startAngle = 75
         XCTAssertEqual(settings.startAngle, 75)
-    }
-
-    func testDisabledReasonRoundTrips() {
-        settings.disabledReason = .watchdog
-        XCTAssertEqual(settings.disabledReason, .watchdog)
-        settings.disabledReason = nil
-        XCTAssertNil(settings.disabledReason)
     }
 }

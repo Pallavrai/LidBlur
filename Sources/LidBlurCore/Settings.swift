@@ -14,11 +14,6 @@ public final class Settings: @unchecked Sendable {
         set { defaults.set(newValue, forKey: "enabled") }
     }
 
-    public var disabledReason: Reason? {
-        get { defaults.string(forKey: "disabledReason").flatMap(Reason.init(rawValue:)) }
-        set { defaults.set(newValue?.rawValue, forKey: "disabledReason") }
-    }
-
     public var hasLaunchedBefore: Bool {
         get { defaults.bool(forKey: "hasLaunchedBefore") }
         set { defaults.set(newValue, forKey: "hasLaunchedBefore") }

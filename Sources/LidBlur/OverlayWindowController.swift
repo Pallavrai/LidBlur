@@ -3,9 +3,6 @@ import AppKit
 /// The only owner of the overlay window. Shown only while the level is above zero; destroyed on display changes.
 @MainActor
 final class OverlayWindowController {
-    enum Style { case blurAndDim, dimOnly }
-    /// shortcut: variant B and .fullScreenUI are provisional defaults; set from lidprobe overlay results (Q4).
-    static let style = Style.blurAndDim
     static let material = NSVisualEffectView.Material.fullScreenUI
     static let maxDim: Float = 0.7
 
@@ -19,7 +16,7 @@ final class OverlayWindowController {
         prepare(on: screen)
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        effect?.alphaValue = (reduceTransparency || Self.style == .dimOnly) ? 0 : level
+        effect?.alphaValue = reduceTransparency ? 0 : level
         dim?.opacity = Self.maxDim * Float(pow(level, 0.6))   // dim rises faster than blur to hide the crossfade ghost
         CATransaction.commit()
         window?.orderFrontRegardless()

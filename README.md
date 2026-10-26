@@ -1,54 +1,136 @@
-# LidBlur
+<p align="center">
+  <img src="docs/icon.png" width="128" height="128" alt="LidBlur icon">
+</p>
 
-A macOS menu-bar app that blurs and dims your MacBook screen as you close the lid. As you open it again, the blur recedes in step with the hinge.
+<h1 align="center">LidBlur</h1>
 
-**This is a visual effect, not a privacy tool.** It only affects the built-in display, never external monitors.
+<p align="center">
+  A blur that follows your MacBook's hinge. Close the lid and the screen softly blurs and dims; open it and the blur recedes.
+</p>
 
-## Supported Macs
+<p align="center">
+  <a href="https://github.com/Pallavrai/LidBlur/actions/workflows/ci.yml"><img src="https://github.com/Pallavrai/LidBlur/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/macOS-14%2B-black.svg" alt="macOS 14 or later">
+  <img src="https://img.shields.io/badge/Apple%20Silicon-required-black.svg" alt="Apple Silicon">
+</p>
 
-LidBlur reads the MacBook's hinge (lid-angle) sensor. Not every MacBook has one LidBlur can read. The app checks at launch and tells you if yours is unsupported. Requires macOS 14 or later on Apple Silicon.
+---
+
+LidBlur is a small menu-bar app for MacBooks. It reads the hinge's lid-angle sensor and draws a blur-and-dim layer over the built-in display that tracks the lid as you move it.
+
+- **Follows the hinge.** The blur grows as the lid closes and recedes as it opens, eased so it never jumps.
+- **Stays out of the way.** Hold the lid still and the blur stays. Touch the keyboard or trackpad and it fades out.
+- **Built-in display only.** External monitors, mirroring and clamshell mode are never affected.
+- **Light.** No network access, no permission prompts, and close to zero CPU while the lid is still.
+
+> LidBlur is a visual effect, not a privacy tool. Don't rely on it to hide what's on your screen.
+
+## Requirements
+
+- A MacBook with Apple silicon and a readable lid-angle sensor. Most recent MacBook Air and MacBook Pro models have one, but Apple doesn't document which. LidBlur checks at launch and tells you if your Mac isn't supported.
+- macOS 14 Sonoma or later.
 
 ## Install
 
-- Download `LidBlur-<version>.dmg` from Releases and drag LidBlur to Applications, or
-- `brew install --cask pallavrai/lidblur/lidblur`
+### Homebrew
 
-## Use
+```bash
+brew tap pallavrai/lidblur https://github.com/Pallavrai/LidBlur
+```
 
-The laptop icon in the menu bar has: a live lid-angle readout, Enabled, Launch at Login, a **Blur starts at** slider (30°–110°, default 80°), **Start Blur at Current Lid Angle**, Preview Effect, Copy Diagnostics and Quit. If the menu-bar icon is hidden (for example behind the notch), open LidBlur again from Applications to get its window.
+```bash
+brew install --cask lidblur
+```
 
-The blur stays as long as you hold the lid at that angle. Moving the cursor, typing, scrolling or clicking fades it out, and it stays away until you close the lid further.
+### Download
 
-**If the screen ever stays blurred:** move the cursor or press any key. If that doesn't clear it, press **Control-Option-Command-B**, which quits LidBlur immediately and restores the screen. As a last resort, LidBlur fades out a near-full blur after 2 minutes with no input, and quits itself if it freezes while the blur is showing.
+Download the latest `LidBlur-<version>.dmg` from [Releases](https://github.com/Pallavrai/LidBlur/releases), open it, and drag LidBlur into Applications.
 
-The effect pauses for:
+### First launch
 
-- clamshell mode
-- mirroring
+Current releases aren't notarized by Apple yet, so macOS blocks the first launch. To allow it:
+
+1. Open LidBlur once and dismiss the warning.
+2. Open **System Settings → Privacy & Security**.
+3. Scroll to the message about LidBlur and click **Open Anyway**.
+
+You only need to do this once per version.
+
+## Usage
+
+LidBlur lives in the menu bar as a laptop icon.
+
+| Menu item | What it does |
+| --- | --- |
+| Status line | Shows the current state and the live lid angle. |
+| Enabled | Turns the effect on or off. |
+| Launch at Login | Starts LidBlur when you log in. |
+| Blur starts at | Sets the lid angle where the blur begins (30°–110°, default 80°). |
+| Start Blur at Current Lid Angle | Hold the lid where you want the blur to begin, then choose this. |
+| Preview Effect | Plays the effect once without moving the lid. |
+| Copy Diagnostics | Copies a short report to include in bug reports. |
+| About LidBlur | Shows the welcome window. |
+| Check for Updates… | Opens the Releases page. |
+
+If the menu-bar icon is hidden, for example behind the notch, open LidBlur again from Applications to show its window.
+
+### How the effect behaves
+
+- **Closing:** the blur and dim grow in step with the lid, from the start angle down to the point where the screen turns off.
+- **Holding still:** the blur stays at that angle for as long as you hold it.
+- **Typing, moving the cursor, scrolling or clicking:** the blur fades out over about a second. It stays away until you close the lid further.
+- **Opening:** the blur recedes with the lid, mirroring the close.
+
+### If the screen stays blurred
+
+Move the cursor or press any key. If that doesn't clear it, press **Control-Option-Command-B**, which quits LidBlur immediately and restores the screen. LidBlur also has two automatic safeguards:
+
+- It fades out a near-full blur after two minutes with no input.
+- It quits itself if it ever freezes while the blur is showing.
+
+## Privacy
+
+LidBlur makes no network connections and asks for no permissions. It reads two things:
+
+- the lid angle from the hinge sensor
+- how many seconds have passed since your last key press or pointer movement
+
+It never sees which keys you press or where the pointer is.
+
+## Accessibility
+
+- **Reduce Transparency:** LidBlur only dims, with no blur.
+- **Reduce Motion:** the effect follows the hinge directly, with no extra smoothing of the angle.
 
 ## Known limitations
 
-- If the lid closes fully and the Mac sleeps, opening it shows the lock screen first, and apps can't draw over it. The opening effect appears only when you reopen before the Mac sleeps.
-- Whether the overlay shows in screen sharing depends on the sharing app.
-- Apple doesn't document the hinge sensor. A future macOS could change or block it, and LidBlur would then report the sensor as unsupported.
+- **Opening after sleep:** if the lid closes far enough for the Mac to sleep, opening it shows the lock screen first, and apps can't draw over that. The opening effect only appears if you reopen before the Mac sleeps.
+- **Screen recordings and screen sharing:** the overlay is excluded from screenshots, recordings and screen sharing.
+- **Future macOS versions:** Apple doesn't document the hinge sensor, so a future macOS update could change or block it. If that happens, LidBlur reports the sensor as unsupported and stays out of the way.
 
-## Troubleshooting
+## Building from source
 
-Use **Copy Diagnostics** and paste the result into an issue. Logs are in Console.app under subsystem `com.pallavrai.lidblur`. LidBlur makes no network connections.
-
-## Build
+Requires Xcode 16 or later.
 
 ```bash
 swift test
-scripts/bundle.sh            # builds and ad-hoc signs dist/LidBlur.app
 ```
 
-To release, run `scripts/release.sh <version>` with `DEVELOPER_ID` and `NOTARY_PROFILE` set. The `Tools/lidprobe` tool reads the sensor and tests the overlay on a new Mac; see the comments at the top of its source file.
+```bash
+scripts/build.sh
+```
 
-## Credits
+`scripts/build.sh` produces `dist/LidBlur.app` and a DMG. See [CONTRIBUTING.md](CONTRIBUTING.md) for development and release details, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the app works.
 
-Sensor matching and report format are from [LidAngleSensor](https://github.com/samhenrigold/LidAngleSensor) by Sam Henri Gold.
+## Contributing
+
+Bug reports and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. If LidBlur doesn't support your Mac, open an issue with the output of **Copy Diagnostics**: it helps map which models expose the sensor.
+
+## Acknowledgements
+
+The hinge sensor's HID identifiers and report format were first documented by [LidAngleSensor](https://github.com/samhenrigold/LidAngleSensor) by Sam Henri Gold.
 
 ## License
 
-MIT, © 2026 Pallav Rai
+LidBlur is released under the [MIT License](LICENSE).
