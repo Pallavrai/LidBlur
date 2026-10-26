@@ -15,6 +15,10 @@
   <img src="https://img.shields.io/badge/Apple%20Silicon-required-black.svg" alt="Apple Silicon">
 </p>
 
+<p align="center">
+  <img src="docs/demo.gif" width="480" alt="Closing a MacBook lid with LidBlur: the screen blurs and dims as the lid lowers, then clears as it opens">
+</p>
+
 ---
 
 LidBlur is a small menu-bar app for MacBooks. It reads the hinge's lid-angle sensor and draws a blur-and-dim layer over the built-in display that tracks the lid as you move it.
