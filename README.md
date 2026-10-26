@@ -39,8 +39,14 @@ LidBlur is a small menu-bar app for MacBooks. It reads the hinge's lid-angle sen
 
 ### Homebrew
 
+LidBlur isn't in Homebrew's main catalog yet, so add this repository as a tap and trust it first:
+
 ```bash
 brew tap pallavrai/lidblur https://github.com/Pallavrai/LidBlur
+```
+
+```bash
+brew trust pallavrai/lidblur
 ```
 
 ```bash
