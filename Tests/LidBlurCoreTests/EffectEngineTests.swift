@@ -90,19 +90,32 @@ final class EffectEngineTests: XCTestCase {
         let run = replay(duration: 3, angle: close(to: 45, seconds: 0.3)) { t, input in
             if t > 0.6 { input.secondsSinceInput = 0.2 }
         }
-        XCTAssertEqual(run.at(1.6).level, 0)
-        XCTAssertFalse(run.at(1.6).windowVisible)
-        XCTAssertEqual(run.at(1.6).reason, .recentInput)
+        // Typing starts at 0.6 s; the ease-out fade takes about 1 s.
+        XCTAssertEqual(run.at(2.0).level, 0)
+        XCTAssertFalse(run.at(2.0).windowVisible)
+        XCTAssertEqual(run.at(2.0).reason, .recentInput)
     }
 
-    func testHoldAt40WithoutInputClears() {
-        let run = replay(duration: 4, angle: close(to: 40, seconds: 0.3))
-        XCTAssertGreaterThan(run.at(0.5).level, 0.2)
-        XCTAssertGreaterThan(run.at(1.5).level, 0.2)   // a short pause keeps the effect
-        // Lid stops at t=0.5; the filter tail and motion window settle (~0.15 s), then still timeout + clear ramp.
-        let deadline = 0.5 + 0.15 + EngineConstants.stillTimeout + EngineConstants.clearDuration
-        XCTAssertEqual(run.at(deadline).level, 0)
-        XCTAssertEqual(run.at(deadline).reason, .still)
+    func testHoldingTheLidKeepsTheBlur() {
+        // Close to 40° and hold for 30 s with no input: the blur stays at the angle's level the whole time.
+        let run = replay(duration: 30, angle: close(to: 40, seconds: 0.3))
+        let held = run.at(1).level
+        XCTAssertGreaterThan(held, 0.5)
+        XCTAssertEqual(run.at(29.9).level, held, accuracy: 0.01)
+        XCTAssertTrue(run.at(29.9).windowVisible)
+    }
+
+    func testInputDismissesUntilLidClosesFurther() {
+        // Hold at 40°, move the cursor at 2 s, stop at 2.5 s, then close further to 25° at 6 s.
+        let run = replay(duration: 8, angle: { t in
+            t < 6 ? close(to: 40, seconds: 0.3)(t) : max(25, 40 - (t - 6) * 50)
+        }) { t, input in
+            input.secondsSinceInput = t < 2 ? 1e9 : (t <= 2.5 ? 0 : t - 2.5)
+        }
+        XCTAssertEqual(run.at(3.5).level, 0)                  // faded after the cursor moved
+        XCTAssertEqual(run.at(5.9).level, 0)                  // stays dismissed while the lid is held
+        XCTAssertEqual(run.at(5.9).reason, .dismissed)
+        XCTAssertGreaterThan(run.at(7.5).level, 0.8)          // closing further brings it back
     }
 
     func testCustomStartAngleStartsEarlier() {
@@ -122,19 +135,17 @@ final class EffectEngineTests: XCTestCase {
         XCTAssertFalse(run.outputs.contains { $0.out.level.isNaN })
     }
 
-    func testFadeOutIsGradual() {
-        let run = replay(duration: 2, angle: { t in
-            t < 0.6 ? close(to: 22, seconds: 0.3)(t) : 22 + (t - 0.6) * 200
-        })
-        // Midway through the fade the effect is still partly visible, not snapped off.
-        let mid = run.at(0.6 + EngineConstants.downMoveWindow + EngineConstants.clearDuration / 2)
-        XCTAssertGreaterThan(mid.level, 0.2)
-        XCTAssertLessThan(mid.level, 0.9)
-    }
-
-    func testHoldBelowHoldAngleKeepsEffect() {
-        let run = replay(duration: 3, angle: close(to: 22, seconds: 0.3))
-        XCTAssertGreaterThan(run.at(2.5).level, 0.9)
+    func testDismissFadeIsEaseOut() {
+        // Hold at 40°, then the cursor moves at 2 s: the blur fades on an ease-out curve, visible for a while.
+        let run = replay(duration: 5, angle: close(to: 40, seconds: 0.3)) { t, input in
+            if t >= 2 { input.secondsSinceInput = 0 }
+        }
+        let i = run.outputs.firstIndex { $0.out.reason == .recentInput }!
+        let (t0, l0) = (run.outputs[i].t, run.outputs[i - 1].out.level)
+        let tau = EngineConstants.fadeTimeConstant
+        XCTAssertEqual(run.at(t0 + tau).level / l0, exp(-1), accuracy: 0.08)   // fastest at first, then eases
+        XCTAssertGreaterThan(run.at(t0 + 0.3).level, 0)                          // still noticeable after 0.3 s
+        XCTAssertEqual(run.at(t0 + 7 * tau).level, 0)                            // and gone in about 1 s
     }
 
     func testWobbleAtThresholdNeverBecomesVisible() {
@@ -173,12 +184,19 @@ final class EffectEngineTests: XCTestCase {
         XCTAssertEqual(run.at(0.45).appState, .unsupported)
     }
 
-    func testOpeningClearsWithinClearDuration() {
-        let run = replay(duration: 2, angle: { t in
-            t < 0.6 ? close(to: 22, seconds: 0.3)(t) : 22 + (t - 0.6) * 200
-        })
+    func testOpeningRecedesWithTheLid() {
+        // Close to 22°, then open at 100°/s: the blur shrinks in step with the angle, mirroring the close.
+        let open: (Double) -> Double = { t in t < 0.6 ? close(to: 22, seconds: 0.3)(t) : 22 + (t - 0.6) * 100 }
+        let run = replay(duration: 2, angle: open)
         XCTAssertGreaterThan(run.at(0.6).level, 0.9)
-        XCTAssertEqual(run.at(0.6 + EngineConstants.downMoveWindow + EngineConstants.clearDuration + 0.02).level, 0)
+        // Halfway through the band (50°, t = 0.88) about half the effect remains.
+        let mid = run.at(0.88).level
+        XCTAssertGreaterThan(mid, 0.3)
+        XCTAssertLessThan(mid, 0.75)
+        // Never rises while opening, and is gone shortly after the lid passes the start angle (t = 1.18).
+        let opening = run.outputs.filter { $0.t > 0.75 }.map(\.out.level)
+        XCTAssertFalse(zip(opening, opening.dropFirst()).contains { $1 > $0 + 1e-9 })
+        XCTAssertEqual(run.at(1.35).level, 0)
     }
 
     func testDisplayGatesHideWindow() {
@@ -204,12 +222,12 @@ final class EffectEngineTests: XCTestCase {
         XCTAssertEqual(run.at(0.3).reason, .justWoke)
     }
 
-    func testWatchdogDisablesAfterLongHold() {
-        let run = replay(duration: 12, angle: close(to: 10, seconds: 0.3))
-        let tripped = run.outputs.first { $0.out.requestDisable == .watchdog }
-        XCTAssertNotNil(tripped)
-        XCTAssertEqual(tripped!.t, 0.5 + EngineConstants.watchdogDuration, accuracy: 0.5)
-        XCTAssertEqual(tripped!.out.level, 0)
+    func testWatchdogDismissesAfterVeryLongNearFullHold() {
+        let d = EngineConstants.watchdogDuration
+        let run = replay(duration: d + 3, angle: close(to: 10, seconds: 0.3))
+        XCTAssertGreaterThan(run.at(d - 1).level, 0.9)   // a long hold keeps the blur
+        XCTAssertEqual(run.at(d + 2.5).level, 0)          // until the safety net fades it out
+        XCTAssertEqual(run.at(d + 2.5).reason, .dismissed)
     }
 
     func testReduceMotionStillReachesFull() {

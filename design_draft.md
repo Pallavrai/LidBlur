@@ -125,6 +125,17 @@ The build differs from the Detailed Implementation Plan below in these ways. The
     - The level now eases toward its target (`riseTimeConstant` 0.03 s), and the sensor filter is lighter (`emaTimeConstant` 0.015 s).
     - Measured in simulation: a 0.4 s slam still reaches 95.6% before the screen goes dark, and a 0.6 s close reaches 98.5%.
   - **Default start angle** raised from 60° to 80°, because at 60° the screen is already hard to see.
+- **Third round of user testing (2026-10-26): opening effect.**
+  - **On opening,** the blur now recedes in step with the lid, following the same angle curve as the close. It can only decrease while opening.
+  - **Pausing or typing** fades the blur out on an ease-out curve (`fadeTimeConstant` 0.15 s, about 1 s to invisible), replacing the linear `clearDuration` ramp.
+  - **Both directions** use one exponential follow (`followTimeConstant` 0.03 s).
+  - This reverses the design's "no opening animation" non-goal for the case where the Mac stays awake. After sleep, the lock screen still comes first.
+- **Fourth round of user testing (2026-10-26): hold keeps the blur.**
+  - **Holding the lid still** no longer clears the blur. `stillTimeout` and `holdAngle` are removed.
+  - **Input dismisses it:** keyboard, cursor, scroll or click input fades the blur out (ease-out). It stays dismissed until the lid closes further.
+  - **While held or opening,** the blur can stay or shrink but never grows without closing motion.
+  - **Watchdog:** it now fades a near-full blur out after 120 s with no input, instead of disabling the app after 10 s. The unused disable path (`requestDisable`, `disable()`) is removed.
+  - This reverses Goal 7's "clear after holding still" and replaces it with "clear on input". People working at a low angle dismiss the blur as soon as they type or move the cursor.
 - **Measured idle cost:** about 0.5% CPU and about 5 wakeups/s on Mac17,3, slightly above the 0.3% goal. The cost is the 10 Hz sensor read. Lowering it depends on measuring real closes (Q1/Q2).
 
 ## Critical User Journeys (CUJs)

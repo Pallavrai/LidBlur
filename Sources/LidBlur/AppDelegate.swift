@@ -93,7 +93,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let (m, out) = EffectEngine.step(memory, input)
         memory = m
         last = out
-        if let reason = out.requestDisable { disable(reason); return }
 
         if out.inBand, !out.windowVisible, let screen = SystemMonitor.builtInScreen { overlay.prepare(on: screen) }
         overlay.apply(level: out.level, visible: out.windowVisible,
@@ -120,18 +119,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settings.disabledReason = on ? nil : .userDisabled
         if !on { overlay.teardown() }
         tick()
-        refreshScheduler()
-    }
-
-    private func disable(_ reason: Reason) {
-        settings.enabled = false
-        settings.disabledReason = reason
-        previewStart = nil
-        memory = EngineMemory()
-        overlay.teardown()
-        freezeGuard.beat(overlayVisible: false)
-        last = EngineOutput(appState: .disabled, reason: reason)
-        Diagnostics.log.notice("Disabled: \(reason.rawValue)")
         refreshScheduler()
     }
 

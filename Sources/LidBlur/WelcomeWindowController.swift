@@ -20,7 +20,7 @@ final class WelcomeWindowController: NSObject, NSWindowDelegate {
         w.delegate = self
 
         let body = supported()
-            ? "LidBlur blurs and dims the MacBook screen as you close the lid, and clears it when the lid stops or opens. "
+            ? "LidBlur blurs and dims the MacBook screen as you close the lid, and clears it as you open the lid or use the keyboard or trackpad. "
               + "It only affects the built-in display.\n\nThis is a visual effect, not a privacy tool.\n\n"
               + "If the screen ever stays blurred, press Control-Option-Command-B to quit LidBlur immediately.\n\n"
               + "You can change the angle where the blur starts from the menu-bar icon."

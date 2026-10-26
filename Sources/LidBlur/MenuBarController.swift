@@ -124,7 +124,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         case .asleep: "asleep"
         case .sessionInactive: "screen locked"
         case .justWoke, .stale: "waiting for sensor"
-        case .still, .recentInput, .opening, .none: nil
+        case .dismissed, .recentInput, .opening, .none: nil
         }
         return ([state, reason, angle.map { "Lid \(Int($0))°" }].compactMap { $0 }).joined(separator: " · ")
     }
