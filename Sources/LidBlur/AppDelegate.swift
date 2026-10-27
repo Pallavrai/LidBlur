@@ -21,6 +21,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let previewDuration = 1.5
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Usually windowless, which macOS treats as safe to quit silently; it must keep watching the lid.
+        ProcessInfo.processInfo.disableAutomaticTermination("Watches the lid angle in the background")
         sensor.onStatus = { [unowned self] _ in refreshScheduler() }
         monitor.onChange = { [unowned self] state in
             if state.reconfiguring {
