@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-27
+
 ### Added
 
 - **Settings window:** opens on first launch and whenever the app is opened again.
@@ -37,5 +39,6 @@ All notable changes to this project are documented in this file. The format is b
 - **Menu items:** Preview Effect, Copy Diagnostics, Launch at Login, and a welcome window.
 - **Homebrew:** a cask in this repository.
 
-[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Pallavrai/LidBlur/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Pallavrai/LidBlur/releases/tag/v0.1.0
