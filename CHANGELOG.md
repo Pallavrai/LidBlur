@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-27
+
+### Fixed
+
+- **CPU use:** LidBlur updates every display frame only while the lid moves or the blur is still fading. With the lid still it now uses about 1% CPU, down from 6–8% when the lid rested near the start angle.
+
 ## [0.1.3] - 2026-10-27
 
 ### Fixed
@@ -51,7 +57,8 @@ All notable changes to this project are documented in this file. The format is b
 - **Menu items:** Preview Effect, Copy Diagnostics, Launch at Login, and a welcome window.
 - **Homebrew:** a cask in this repository.
 
-[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/Pallavrai/LidBlur/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Pallavrai/LidBlur/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Pallavrai/LidBlur/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Pallavrai/LidBlur/compare/v0.1.0...v0.1.1
