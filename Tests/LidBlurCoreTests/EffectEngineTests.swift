@@ -203,8 +203,7 @@ final class EffectEngineTests: XCTestCase {
         let trace = close(to: 22, seconds: 0.3)
         for gate in [{ (s: inout SystemState) in s.reconfiguring = true },
                      { (s: inout SystemState) in s.builtInMirrored = true },
-                     { (s: inout SystemState) in s.builtInDisplayID = nil },
-                     { (s: inout SystemState) in s.displayAwake = false }] {
+                     { (s: inout SystemState) in s.builtInDisplayID = nil }] {
             let run = replay(duration: 1, angle: trace) { t, input in if t > 0.5 { gate(&input.system) } }
             XCTAssertGreaterThan(run.at(0.49).level, 0.5)
             XCTAssertEqual(run.at(0.51).level, 0)
@@ -212,14 +211,42 @@ final class EffectEngineTests: XCTestCase {
         }
     }
 
-    func testStaleSampleAfterWakeStaysClear() {
-        // Last reading before sleep was 5°; after wake no fresh sample has arrived yet.
-        let run = replay(duration: 1, angle: { t in t < 0.1 ? 5 : nil }) { t, input in
-            input.system.lastWakeTime = 0.2
-            input.now += 0   // keep sample within staleTimeout so only the wake gate applies
+    /// Close the lid to 5°, sleep from 1 s to 2 s (no samples while asleep), wake at 2 s.
+    private func sleepCycle(after wake: @escaping (Double) -> Double?) -> Run {
+        let closing = close(to: 5, seconds: 0.3)
+        return replay(duration: 3, angle: { t in t < 1 ? closing(t) : (t < 2 ? nil : wake(t)) }) { t, input in
+            if (1..<2).contains(t) { input.system.systemAwake = false; input.system.displayAwake = false }
+            if t >= 2 { input.system.lastWakeTime = 2 }
         }
-        XCTAssertEqual(run.at(0.3).level, 0)
-        XCTAssertEqual(run.at(0.3).reason, .waitingForSensor)
+    }
+
+    func testWakeAfterClosingRecedesWithOpening() {
+        // Fresh readings resume 50 ms after wake; the lid opens at 150°/s.
+        let run = sleepCycle { t in t < 2.05 ? nil : 5 + (t - 2.05) * 150 }
+        XCTAssertGreaterThan(run.at(1.5).level, 0.9)          // held on screen through sleep
+        XCTAssertEqual(run.at(1.5).reason, .asleep)
+        XCTAssertGreaterThan(run.at(2.02).level, 0.9)         // still there the moment the screen wakes
+        let mid = run.at(2.3).level                            // lid at ~42°: partly clear
+        XCTAssertGreaterThan(mid, 0.4)
+        XCTAssertLessThan(mid, 0.9)
+        let opening = run.outputs.filter { $0.t >= 2 }.map(\.out.level)
+        XCTAssertFalse(zip(opening, opening.dropFirst()).contains { $1 > $0 + 1e-9 })
+        XCTAssertEqual(run.at(2.8).level, 0)                   // gone once the lid passes the start angle
+    }
+
+    func testWakeWithoutFreshReadingClears() {
+        let run = sleepCycle { _ in nil }
+        XCTAssertGreaterThan(run.at(2.02).level, 0.9)
+        XCTAssertEqual(run.at(2 + EngineConstants.staleTimeout + 0.02).level, 0)
+        XCTAssertEqual(run.at(2.6).reason, .waitingForSensor)
+    }
+
+    func testSleepWithOpenLidWakesClear() {
+        let run = replay(duration: 3, angle: { t in (1..<2).contains(t) ? nil : 110 }) { t, input in
+            if (1..<2).contains(t) { input.system.displayAwake = false }
+            if t >= 2 { input.system.lastWakeTime = 2 }
+        }
+        XCTAssertEqual(run.maxLevel, 0)
     }
 
     func testWatchdogDismissesAfterVeryLongNearFullHold() {

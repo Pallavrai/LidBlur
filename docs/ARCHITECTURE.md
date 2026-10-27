@@ -58,14 +58,14 @@ On every tick, `AppDelegate` does five things:
   The window is only on screen while the level is above zero.
 - **`PanicHotKey`** registers Control-Option-Command-B through Carbon, which needs no permission. Pressing it exits the process, and the window server removes the overlay.
 - **`FreezeGuard`** is a background timer. If the main thread stops ticking for two seconds while the overlay is visible, it exits the process.
-- **`MenuBarController`** and **`WelcomeWindowController`** provide the UI.
+- **`SettingsWindowController`** is the main UI. It opens on first launch and whenever the app is reopened.
+- **`MenuBarController`** is an optional menu-bar icon with quick actions. It can be hidden from Settings.
 
 ## Effect engine rules
 
 1. **Gates.** The effect is forced to zero in any of these cases:
    - there is no built-in display, or it is mirrored
    - a display reconfiguration is in progress
-   - the system or display is asleep
    - the session is inactive
    - the user has disabled the effect
    - the sensor is missing or not responding
@@ -74,8 +74,11 @@ On every tick, `AppDelegate` does five things:
 3. **Mapping.** A smoothstep curve maps the angle to a target level, running from the user's start angle down to the full angle. The full angle is calibrated per machine from the angle seen just before the display turns off, plus 5°, with a floor of 20°.
 4. **Motion.** While closing, the target follows the angle. While holding or opening, the target can only stay the same or fall, so the blur recedes with the lid and never reappears by itself.
 5. **Dismissal.** Keyboard or pointer input within the last 1.5 s dismisses the effect until the lid closes further.
-6. **Easing.** The level approaches its target exponentially: 30 ms while following the hinge, 150 ms when fading after a dismissal.
-7. **Watchdog.** A near-full blur held for two minutes with no input is dismissed.
+6. **Sleep and wake.**
+   - **During sleep**, the current level is held on screen, so a lid closed past the band wakes up blurred.
+   - **After wake**, the level is held until a fresh sensor reading arrives. With a fresh reading it recedes as the lid opens; if none arrives within 0.5 s, it clears.
+7. **Easing.** The level approaches its target exponentially: 30 ms while following the hinge, 150 ms when fading after a dismissal.
+8. **Watchdog.** A near-full blur held for two minutes with no input is dismissed.
 
 All constants are in `EngineConstants`.
 

@@ -69,28 +69,25 @@ You only need to do this once per version.
 
 ## Usage
 
-LidBlur lives in the menu bar as a laptop icon.
+LidBlur opens its **Settings** window on first launch. Open the app again from Applications at any time to bring Settings back.
 
-| Menu item | What it does |
+| Setting | What it does |
 | --- | --- |
-| Status line | Shows the current state and the live lid angle. |
-| Enabled | Turns the effect on or off. |
-| Launch at Login | Starts LidBlur when you log in. |
-| Blur starts at | Sets the lid angle where the blur begins (30°–110°, default 80°). |
-| Start Blur at Current Lid Angle | Hold the lid where you want the blur to begin, then choose this. |
+| Enable LidBlur | Turns the effect on or off. |
+| Launch at login | Starts LidBlur when you log in. |
+| Show icon in menu bar | Shows or hides the laptop icon. When it's hidden, LidBlur keeps running in the background. |
+| Blur starts at | Sets the lid angle where the blur begins (30°–110°, default 80°). Choose **Use Current Lid Angle** to set it to the angle the lid is at now. |
 | Preview Effect | Plays the effect once without moving the lid. |
 | Copy Diagnostics | Copies a short report to include in bug reports. |
-| About LidBlur | Shows the welcome window. |
-| Check for Updates… | Opens the Releases page. |
 
-If the menu-bar icon is hidden, for example behind the notch, open LidBlur again from Applications to show its window.
+The menu-bar icon offers quick access to Enabled, Start Blur at Current Lid Angle, Preview Effect, Settings and Quit, plus the live lid angle.
 
 ### How the effect behaves
 
 - **Closing:** the blur and dim grow in step with the lid, from the start angle down to the point where the screen turns off.
 - **Holding still:** the blur stays at that angle for as long as you hold it.
 - **Typing, moving the cursor, scrolling or clicking:** the blur fades out over about a second. It stays away until you close the lid further.
-- **Opening:** the blur recedes with the lid, mirroring the close.
+- **Opening:** the blur recedes with the lid, mirroring the close. This includes waking from sleep after a full close: the screen wakes up blurred and clears as the lid rises.
 
 ### If the screen stays blurred
 
@@ -115,7 +112,7 @@ It never sees which keys you press or where the pointer is.
 
 ## Known limitations
 
-- **Opening after sleep:** if the lid closes far enough for the Mac to sleep, opening it shows the lock screen first, and apps can't draw over that. The opening effect only appears if you reopen before the Mac sleeps.
+- **Lock screen:** if your Mac asks for a password on wake, macOS shows the lock screen first, and apps can't draw over it. The opening transition is then visible only after you unlock.
 - **Screen recordings and screen sharing:** the overlay is excluded from screenshots, recordings and screen sharing.
 - **Future macOS versions:** Apple doesn't document the hinge sensor, so a future macOS update could change or block it. If that happens, LidBlur reports the sensor as unsupported and stays out of the way.
 

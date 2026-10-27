@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- **Settings window:** opens on first launch and whenever the app is opened again.
+- **Show icon in menu bar** option. With the icon hidden, LidBlur keeps running in the background.
+
+### Fixed
+
+- **Opening after sleep:** after a full close, the screen no longer appears instantly when you open the lid. The blur is held through sleep and recedes as the lid opens. ([#1](https://github.com/Pallavrai/LidBlur/issues/1))
+
 ## [0.1.0] - 2026-10-26
 
 ### Added

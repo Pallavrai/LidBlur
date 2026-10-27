@@ -118,12 +118,18 @@ public enum EffectEngine {
             var m = EngineMemory(); m.lastStepTime = input.now
             return (m, EngineOutput(appState: state, reason: reason))
         }
+        // Keeps whatever is on screen without advancing the effect.
+        func held(_ reason: Reason) -> (EngineMemory, EngineOutput) {
+            var m = memory; m.lastStepTime = input.now; m.highLevelSince = nil
+            return (m, EngineOutput(level: m.level, windowVisible: m.level > 0, appState: .suspended, reason: reason, inBand: true))
+        }
 
         // Display and power gates apply to everything, preview included.
         if sys.builtInDisplayID == nil { return gated(.suspended, .noBuiltInDisplay) }
         if sys.builtInMirrored { return gated(.suspended, .mirrored) }
         if sys.reconfiguring { return gated(.suspended, .reconfiguring) }
-        if !sys.systemAwake || !sys.displayAwake { return gated(.suspended, .asleep) }
+        // Hold the blur through sleep, so a lid closed past the band wakes up blurred and clears as it opens.
+        if !sys.systemAwake || !sys.displayAwake { return held(.asleep) }
         if !sys.sessionActive { return gated(.suspended, .sessionInactive) }
 
         if let p = input.previewLevel {
@@ -138,8 +144,11 @@ public enum EffectEngine {
         case .silent, .invalid: return gated(.unsupported, .sensorNotResponding)
         case .searching, .found: break
         }
+        if let wake = sys.lastWakeTime, (input.sample?.time ?? -.infinity) <= wake {
+            // Just woke: keep the held blur until a fresh reading arrives, and clear if none comes in time.
+            return input.now - wake <= K.staleTimeout ? held(.waitingForSensor) : gated(.suspended, .waitingForSensor)
+        }
         guard let sample = input.sample, input.now - sample.time <= K.staleTimeout else { return gated(.suspended, .waitingForSensor) }
-        if let wake = sys.lastWakeTime, sample.time <= wake { return gated(.suspended, .waitingForSensor) }
         guard (0...360).contains(sample.angle) else { return gated(.unsupported, .sensorNotResponding) }
 
         var m = memory

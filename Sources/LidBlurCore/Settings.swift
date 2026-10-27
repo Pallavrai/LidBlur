@@ -1,17 +1,23 @@
 import Foundation
 
-/// UserDefaults-backed preferences. Angles are not user-editable; only calibration is stored.
+/// UserDefaults-backed preferences.
 public final class Settings: @unchecked Sendable {
     let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        defaults.register(defaults: ["enabled": true])
+        defaults.register(defaults: ["enabled": true, "showMenuBarIcon": true])
     }
 
     public var enabled: Bool {
         get { defaults.bool(forKey: "enabled") }
         set { defaults.set(newValue, forKey: "enabled") }
+    }
+
+    /// When false the app keeps running with no menu-bar icon; reopening the app shows Settings.
+    public var showMenuBarIcon: Bool {
+        get { defaults.bool(forKey: "showMenuBarIcon") }
+        set { defaults.set(newValue, forKey: "showMenuBarIcon") }
     }
 
     public var hasLaunchedBefore: Bool {

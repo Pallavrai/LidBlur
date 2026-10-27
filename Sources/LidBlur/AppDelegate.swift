@@ -12,7 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotKey = PanicHotKey()
     private let freezeGuard = FreezeGuard()
     private lazy var menu = MenuBarController(app: self)
-    private lazy var welcome = WelcomeWindowController(app: self)
+    private lazy var settingsWindow = SettingsWindowController(app: self)
     private lazy var scheduler = TickScheduler { [unowned self] in tick() }
     private var memory = EngineMemory()
     private var previewStart: Double?
@@ -36,18 +36,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         freezeGuard.start()
         _ = menu
         if !settings.hasLaunchedBefore {
-            // Wait out the sensor's 2 s detection window so the welcome text matches this Mac.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [unowned self] in showWelcome() }
+            // Wait out the sensor's 2 s detection window so the window's text matches this Mac.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [unowned self] in showSettings() }
         }
         refreshScheduler()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        showWelcome()
+        showSettings()
         return false
     }
 
-    func showWelcome() { welcome.show() }
+    func showSettings() { settingsWindow.show() }
+
+    func setShowMenuBarIcon(_ show: Bool) {
+        settings.showMenuBarIcon = show
+        menu.setVisible(show)
+    }
+
+    var statusText: String {
+        [last.appState.rawValue, last.reason.rawValue, sensor.latest.map { "Lid \(Int($0.angle))°" } ?? ""]
+            .filter { !$0.isEmpty }.joined(separator: " · ")
+    }
 
     func setEnabled(_ on: Bool) {
         settings.enabled = on
@@ -68,9 +78,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let s = monitor.state
         let runnable = s.systemAwake && s.displayAwake && s.sessionActive && s.builtInDisplayID != nil
             && (settings.enabled || previewStart != nil) && sensor.status != .notFound
-        // An open menu keeps the sensor polled so its live angle readout works even while disabled.
-        let menuOpen = menu.isOpen && sensor.status != .notFound && s.displayAwake
-        let mode: TickScheduler.Mode = runnable ? (last.inBand || previewStart != nil ? .band : .idle) : (menuOpen ? .idle : .stopped)
+        // Open UI keeps the sensor polled so the live angle readout works even while disabled.
+        let uiOpen = (menu.isOpen || settingsWindow.isVisible) && sensor.status != .notFound && s.displayAwake
+        let mode: TickScheduler.Mode = runnable ? (last.inBand || previewStart != nil ? .band : .idle) : (uiOpen ? .idle : .stopped)
         scheduler.setMode(mode, screen: SystemMonitor.builtInScreen)
     }
 
@@ -99,8 +109,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let screen = SystemMonitor.builtInScreen
         if last.inBand, let screen { overlay.prepare(on: screen) }
         overlay.apply(level: last.level, visible: last.windowVisible, reduceTransparency: input.system.reduceTransparency, on: screen)
-        freezeGuard.beat(overlayVisible: last.windowVisible)
+        // While asleep there are no ticks by design, so the freeze guard must not count a held blur.
+        freezeGuard.beat(overlayVisible: last.windowVisible && last.reason != .asleep)
         menu.refreshIfOpen()
+        settingsWindow.refreshStatusIfVisible()
         refreshScheduler()
     }
 

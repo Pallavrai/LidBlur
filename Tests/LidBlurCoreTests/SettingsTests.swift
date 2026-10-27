@@ -10,6 +10,7 @@ final class SettingsTests: XCTestCase {
 
     func testDefaults() {
         XCTAssertTrue(settings.enabled)
+        XCTAssertTrue(settings.showMenuBarIcon)
         XCTAssertEqual(settings.fullAngle, 20)
     }
 
