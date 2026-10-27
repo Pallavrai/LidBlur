@@ -1,5 +1,6 @@
 import AppKit
 import LidBlurCore
+import ServiceManagement
 
 /// Wires the parts together. Every tick: poll sensor → build input → EffectEngine.step → overlay, scheduler, menu.
 @MainActor
@@ -7,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = Settings()
     let sensor = HIDLidSensor()
     private(set) var last = EngineOutput()
+    let settingsModel = SettingsModel()
     private let monitor = SystemMonitor()
     private let overlay = OverlayWindowController()
     private let hotKey = PanicHotKey()
@@ -52,6 +54,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func setShowMenuBarIcon(_ show: Bool) {
         settings.showMenuBarIcon = show
         menu.setVisible(show)
+        syncSettingsModel()
+    }
+
+    func setLaunchAtLogin(_ on: Bool) {
+        do {
+            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+        } catch {
+            NSAlert(error: error).runModal()
+        }
+        syncSettingsModel(full: true)
+    }
+
+    /// Pushes current state into the Settings window's model, writing only values that changed.
+    /// `full` also refreshes values that are costly or rarely change (login item status, sensor support).
+    func syncSettingsModel(full: Bool = false) {
+        let m = settingsModel
+        func put<T: Equatable>(_ keyPath: ReferenceWritableKeyPath<SettingsModel, T>, _ value: T) {
+            if m[keyPath: keyPath] != value { m[keyPath: keyPath] = value }
+        }
+        put(\.state, last.appState.rawValue)
+        put(\.detail, last.reason.rawValue)
+        put(\.tone, last.appState == .active ? .active : (last.appState == .idle ? .idle : .attention))
+        put(\.angle, sensor.latest.map { Int($0.angle) })
+        put(\.enabled, settings.enabled)
+        put(\.showMenuBarIcon, settings.showMenuBarIcon)
+        put(\.startAngle, settings.startAngle)
+        if full {
+            let login = SMAppService.mainApp.status
+            put(\.launchAtLogin, login == .enabled)
+            put(\.loginNeedsApproval, login == .requiresApproval)
+            put(\.supported, sensor.status != .notFound)
+        }
     }
 
     var statusText: String {
@@ -112,7 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // While asleep there are no ticks by design, so the freeze guard must not count a held blur.
         freezeGuard.beat(overlayVisible: last.windowVisible && last.reason != .asleep)
         menu.refreshIfOpen()
-        settingsWindow.refreshStatusIfVisible()
+        if settingsWindow.isVisible { syncSettingsModel() }
         refreshScheduler()
     }
 

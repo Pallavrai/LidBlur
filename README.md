@@ -76,7 +76,7 @@ LidBlur opens its **Settings** window on first launch. Open the app again from A
 | Enable LidBlur | Turns the effect on or off. |
 | Launch at login | Starts LidBlur when you log in. |
 | Show icon in menu bar | Shows or hides the laptop icon. When it's hidden, LidBlur keeps running in the background. |
-| Blur starts at | Sets the lid angle where the blur begins (30°–110°, default 80°). Choose **Use Current Lid Angle** to set it to the angle the lid is at now. |
+| Blur starts at | Sets the lid angle where the blur begins (30°–110°, default 80°). Choose **Use Current Angle** to set it to the angle the lid is at now. |
 | Preview Effect | Plays the effect once without moving the lid. |
 | Copy Diagnostics | Copies a short report to include in bug reports. |
 
