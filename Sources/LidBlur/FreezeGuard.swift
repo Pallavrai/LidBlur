@@ -13,7 +13,7 @@ final class FreezeGuard: @unchecked Sendable {
         timer.setEventHandler { [state] in
             let (beat, visible) = state.withLock { $0 }
             if visible, ProcessInfo.processInfo.systemUptime - beat > Self.timeout {
-                Logger(subsystem: "com.pallavrai.lidblur", category: "engine").fault("Main thread stalled with overlay visible; exiting")
+                appLog.fault("Main thread stalled with overlay visible; exiting")
                 exit(0)
             }
         }

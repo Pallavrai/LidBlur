@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sensor.onStatus = { [unowned self] _ in refreshScheduler() }
         monitor.onChange = { [unowned self] state in
             if state.reconfiguring {
+                appLog.notice("overlay torn down for display reconfiguration")
                 overlay.teardown()
                 scheduler.invalidateDisplayLink()
             }
@@ -138,7 +139,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if p >= 1 { previewStart = nil } else { input.previewLevel = sin(.pi * p) }
         }
 
+        let previous = last
         (memory, last) = EffectEngine.step(memory, input)
+        if (last.appState, last.reason, last.windowVisible) != (previous.appState, previous.reason, previous.windowVisible) {
+            appLog.notice("effect \(self.last.appState.rawValue, privacy: .public) \(self.last.reason.rawValue, privacy: .public) visible=\(self.last.windowVisible) level=\(self.last.level, format: .fixed(precision: 2)) angle=\(input.sample?.angle ?? -1)")
+        }
 
         let screen = SystemMonitor.builtInScreen
         if last.inBand, let screen { overlay.prepare(on: screen) }
