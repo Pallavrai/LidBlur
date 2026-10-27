@@ -5,7 +5,7 @@ LidBlur is a Swift package with two targets:
 | Target | Contents |
 | --- | --- |
 | `LidBlurCore` | The effect engine and settings. Pure Swift, no AppKit, fully unit-tested. |
-| `LidBlur` | The menu-bar app: sensor, system monitoring, overlay window and UI. |
+| `LidBlur` | The background app: sensor, system monitoring, overlay window, Settings window and optional menu-bar icon. |
 
 `scripts/build.sh` wraps the `LidBlur` executable in an app bundle using `App/Info.plist`, `App/AppIcon.icns` and `App/LidBlur.entitlements`.
 

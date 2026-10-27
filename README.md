@@ -21,12 +21,12 @@
 
 ---
 
-LidBlur is a small menu-bar app for MacBooks. It reads the hinge's lid-angle sensor and draws a blur-and-dim layer over the built-in display that tracks the lid as you move it.
+LidBlur is a lightweight background app for MacBooks. It reads the hinge's lid-angle sensor and draws a blur-and-dim layer over the built-in display that tracks the lid as you move it. Configure it from its Settings window, with an optional menu-bar icon for quick access.
 
 - **Follows the hinge.** The blur grows as the lid closes and recedes as it opens, eased so it never jumps.
 - **Stays out of the way.** Hold the lid still and the blur stays. Touch the keyboard or trackpad and it fades out.
 - **Built-in display only.** External monitors, mirroring and clamshell mode are never affected.
-- **Light.** No network access, no permission prompts, and close to zero CPU while the lid is still.
+- **Runs quietly.** No Dock icon, an optional menu-bar icon, no network access, no permission prompts, and close to zero CPU while the lid is still.
 
 > LidBlur is a visual effect, not a privacy tool. Don't rely on it to hide what's on your screen.
 
