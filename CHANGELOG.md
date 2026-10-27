@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-27
+
+### Fixed
+
+- **Staying in the background:** macOS no longer treats LidBlur as safe to quit while it has no windows open, so it keeps running after you close Settings.
+
 ## [0.1.2] - 2026-10-27
 
 ### Fixed
@@ -45,7 +51,8 @@ All notable changes to this project are documented in this file. The format is b
 - **Menu items:** Preview Effect, Copy Diagnostics, Launch at Login, and a welcome window.
 - **Homebrew:** a cask in this repository.
 
-[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Pallavrai/LidBlur/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Pallavrai/LidBlur/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Pallavrai/LidBlur/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Pallavrai/LidBlur/releases/tag/v0.1.0
