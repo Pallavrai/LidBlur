@@ -17,7 +17,7 @@ final class OverlayWindowController {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         effect?.alphaValue = reduceTransparency ? 0 : level
-        dim?.opacity = Self.maxDim * Float(pow(level, 0.6))   // dim rises faster than blur to hide the crossfade ghost
+        dim?.opacity = Self.maxDim * Float(level)   // in step with the blur, so a nearly cleared effect leaves no dimming
         CATransaction.commit()
         window?.orderFrontRegardless()
     }

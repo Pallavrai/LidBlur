@@ -189,14 +189,16 @@ final class EffectEngineTests: XCTestCase {
         let open: (Double) -> Double = { t in t < 0.6 ? close(to: 22, seconds: 0.3)(t) : 22 + (t - 0.6) * 100 }
         let run = replay(duration: 2, angle: open)
         XCTAssertGreaterThan(run.at(0.6).level, 0.9)
-        // Halfway through the band (50°, t = 0.88) about half the effect remains.
-        let mid = run.at(0.88).level
+        let start = EngineConstants.defaultStartAngle, full = EngineConstants.defaultFullAngle
+        let timeAt = { (angle: Double) in 0.6 + (angle - 22) / 100 }
+        // Halfway through the band about half the effect remains.
+        let mid = run.at(timeAt((start + full) / 2)).level
         XCTAssertGreaterThan(mid, 0.3)
         XCTAssertLessThan(mid, 0.75)
-        // Never rises while opening, and is gone shortly after the lid passes the start angle (t = 1.18).
+        // Never rises while opening, and is gone shortly after the lid passes the start angle.
         let opening = run.outputs.filter { $0.t > 0.75 }.map(\.out.level)
         XCTAssertFalse(zip(opening, opening.dropFirst()).contains { $1 > $0 + 1e-9 })
-        XCTAssertEqual(run.at(1.35).level, 0)
+        XCTAssertEqual(run.at(timeAt(start) + 0.15).level, 0)
     }
 
     func testDisplayGatesHideWindow() {

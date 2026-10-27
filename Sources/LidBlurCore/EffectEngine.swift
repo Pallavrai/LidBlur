@@ -2,9 +2,10 @@ import Foundation
 
 /// Every tunable number lives here.
 public enum EngineConstants {
-    /// At 60° the screen is already hard to see from a normal seat, so the effect starts earlier.
-    public static let defaultStartAngle = 80.0
-    public static let startAngleRange = 30.0...110.0
+    /// Starts early enough to be seen while the screen still faces the user, and below a typical open angle.
+    public static let defaultStartAngle = 95.0
+    /// Below ~70° the screen is hard to see from a normal seat, so a later start would show no visible effect.
+    public static let startAngleRange = 70.0...110.0
     /// The full-effect angle is kept at least this far below the start angle.
     public static let minBandWidth = 10.0
     public static let defaultFullAngle = 20.0

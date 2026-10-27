@@ -53,7 +53,7 @@ On every tick, `AppDelegate` does five things:
   - ignores the mouse and can't become key
   - sits at `.screenSaver` level and joins all Spaces
   - is excluded from screen capture (`sharingType = .none`)
-  - contains an `NSVisualEffectView` and a black dim layer. The dim rises faster than the blur, which hides the crossfade look of fading a fixed-radius blur.
+  - contains an `NSVisualEffectView` and a black dim layer, both driven by the same level, so blur and dimming always fade together.
 
   The window is only on screen while the level is above zero.
 - **`PanicHotKey`** registers Control-Option-Command-B through Carbon, which needs no permission. Pressing it exits the process, and the window server removes the overlay.

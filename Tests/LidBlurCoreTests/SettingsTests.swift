@@ -29,6 +29,8 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(settings.startAngle, EngineConstants.defaultStartAngle)
         settings.startAngle = 200
         XCTAssertEqual(settings.startAngle, 110)
+        settings.startAngle = 30   // too low to see the effect while closing
+        XCTAssertEqual(settings.startAngle, 70)
         settings.startAngle = 75
         XCTAssertEqual(settings.startAngle, 75)
     }
