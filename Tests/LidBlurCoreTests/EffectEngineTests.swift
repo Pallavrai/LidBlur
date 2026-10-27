@@ -50,27 +50,27 @@ final class EffectEngineTests: XCTestCase {
     }
 
     func testSuddenTiltEasesInWithoutJumping() {
-        // Models the app's scheduler: 10 Hz samples while idle, one per 1/120 s frame once the engine reports inBand.
+        // Models the app's scheduler: 10 Hz samples while idle, one per 1/120 s frame while the engine reports animating.
         // A sudden tilt (110° → 30° in 0.15 s) must be noticed early and the level must ease in, not jump.
         let trace = close(to: 30, start: 0.25, seconds: 0.15)
         for startAngle in [60.0, EngineConstants.defaultStartAngle] {
         var memory = EngineMemory()
         var sample: AngleSample?
-        var inBand = false
+        var animating = false
         var nextIdlePoll = 0.0
         var levels: [Double] = []
         var t = 0.0
         while t <= 1 {
-            if inBand || t >= nextIdlePoll - 1e-9 {
+            if animating || t >= nextIdlePoll - 1e-9 {
                 sample = AngleSample(angle: trace(t), time: t)
-                if !inBand { nextIdlePoll = t + 0.1 }
+                if !animating { nextIdlePoll = t + 0.1 }
             }
             var input = EngineInput(now: t)
             input.sample = sample
             input.startAngle = startAngle
             let (m, out) = EffectEngine.step(memory, input)
             memory = m
-            inBand = out.inBand
+            animating = out.animating
             levels.append(out.level)
             t += 1.0 / 120
         }
@@ -103,6 +103,8 @@ final class EffectEngineTests: XCTestCase {
         XCTAssertGreaterThan(held, 0.5)
         XCTAssertEqual(run.at(29.9).level, held, accuracy: 0.01)
         XCTAssertTrue(run.at(29.9).windowVisible)
+        XCTAssertTrue(run.at(0.3).animating)                  // per-frame ticks while closing
+        XCTAssertFalse(run.at(29.9).animating)                // idle rate once the held blur settles
     }
 
     func testInputDismissesUntilLidClosesFurther() {

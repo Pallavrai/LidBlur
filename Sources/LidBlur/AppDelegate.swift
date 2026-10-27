@@ -117,7 +117,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             && (settings.enabled || previewStart != nil) && sensor.status != .notFound
         // Open UI keeps the sensor polled so the live angle readout works even while disabled.
         let uiOpen = (menu.isOpen || settingsWindow.isVisible) && sensor.status != .notFound && s.displayAwake
-        let mode: TickScheduler.Mode = runnable ? (last.inBand || previewStart != nil ? .band : .idle) : (uiOpen ? .idle : .stopped)
+        let mode: TickScheduler.Mode = runnable ? (last.animating || previewStart != nil ? .band : .idle) : (uiOpen ? .idle : .stopped)
         scheduler.setMode(mode, screen: SystemMonitor.builtInScreen)
     }
 
@@ -132,10 +132,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         input.system = monitor.state
         input.startAngle = settings.startAngle
         input.fullAngle = settings.fullAngle
-        // Input timing only matters near the band; skipping it keeps idle ticks cheap.
-        if let a = input.sample?.angle, a < input.startAngle + EngineConstants.bandMargin {
-            input.secondsSinceInput = SystemMonitor.secondsSinceInput()
-        }
+        // Input timing and the overlay only matter near the band; skipping them keeps idle ticks cheap.
+        let nearBand = input.sample.map { $0.angle < input.startAngle + EngineConstants.bandMargin } ?? false
+        if nearBand { input.secondsSinceInput = SystemMonitor.secondsSinceInput() }
         if let start = previewStart {
             let p = (now - start) / Self.previewDuration
             if p >= 1 { previewStart = nil } else { input.previewLevel = sin(.pi * p) }
@@ -148,7 +147,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let screen = SystemMonitor.builtInScreen
-        if last.inBand, let screen { overlay.prepare(on: screen) }
+        if nearBand, let screen { overlay.prepare(on: screen) }
         overlay.apply(level: last.level, visible: last.windowVisible, reduceTransparency: input.system.reduceTransparency, on: screen)
         // While asleep there are no ticks by design, so the freeze guard must not count a held blur.
         freezeGuard.beat(overlayVisible: last.windowVisible && last.reason != .asleep)

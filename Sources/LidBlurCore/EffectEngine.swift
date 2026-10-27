@@ -103,12 +103,13 @@ public struct EngineOutput: Equatable, Sendable {
     public var windowVisible = false
     public var appState = AppState.idle
     public var reason = Reason.none
-    /// True when the scheduler should tick every display frame instead of the idle rate.
-    public var inBand = false
+    /// True while the lid moves or the level is still easing: tick every display frame instead of the idle rate.
+    /// A held blur needs only the idle rate, which is enough to notice the next move.
+    public var animating = false
 
     public init(level: Double = 0, windowVisible: Bool = false, appState: AppState = .idle,
-                reason: Reason = .none, inBand: Bool = false) {
-        (self.level, self.windowVisible, self.appState, self.reason, self.inBand) = (level, windowVisible, appState, reason, inBand)
+                reason: Reason = .none, animating: Bool = false) {
+        (self.level, self.windowVisible, self.appState, self.reason, self.animating) = (level, windowVisible, appState, reason, animating)
     }
 }
 
@@ -125,7 +126,7 @@ public enum EffectEngine {
         // Keeps whatever is on screen without advancing the effect.
         func held(_ reason: Reason) -> (EngineMemory, EngineOutput) {
             var m = memory; m.lastStepTime = input.now; m.highLevelSince = nil
-            return (m, EngineOutput(level: m.level, windowVisible: m.level > 0, appState: .suspended, reason: reason, inBand: true))
+            return (m, EngineOutput(level: m.level, windowVisible: m.level > 0, appState: .suspended, reason: reason, animating: true))
         }
 
         // Display and power gates apply to everything, preview included.
@@ -139,7 +140,7 @@ public enum EffectEngine {
         if let p = input.previewLevel {
             var m = EngineMemory(); m.lastStepTime = input.now
             m.level = min(max(p, 0), 1)
-            return (m, EngineOutput(level: m.level, windowVisible: m.level > K.visibleThreshold, appState: .active, inBand: true))
+            return (m, EngineOutput(level: m.level, windowVisible: m.level > K.visibleThreshold, appState: .active, animating: true))
         }
 
         if !input.enabled { return gated(.disabled, .none) }
@@ -173,7 +174,8 @@ public enum EffectEngine {
         let f = m.filteredAngle!
         let delta = f - (m.history.first?.angle ?? f)
         let movingDown = delta <= -K.downMoveDegrees
-        if abs(delta) >= K.downMoveDegrees { m.lastMoveTime = input.now }
+        let moving = abs(delta) >= K.downMoveDegrees
+        if moving { m.lastMoveTime = input.now }
 
         let fullAngle = min(input.fullAngle, input.startAngle - K.minBandWidth)
         let t = min(max((input.startAngle - f) / (input.startAngle - fullAngle), 0), 1)
@@ -206,6 +208,6 @@ public enum EffectEngine {
         let visible = m.level > 0
         return (m, EngineOutput(level: m.level, windowVisible: visible, appState: visible ? .active : .idle,
                                 reason: m.dismissed ? .dismissed : .none,
-                                inBand: f < input.startAngle + K.bandMargin || visible || movingDown))
+                                animating: moving || abs(target - m.level) > K.visibleThreshold))
     }
 }

@@ -46,8 +46,8 @@ On every tick, `AppDelegate` does five things:
   On the start of a display reconfiguration, it reports synchronously so the overlay is removed before macOS moves windows between screens.
 - **`EffectEngine`** (in `LidBlurCore`) is a pure function from `(EngineMemory, EngineInput)` to `(EngineMemory, EngineOutput)`. See below.
 - **`TickScheduler`** controls how often the app ticks:
-  - **idle:** a 10 Hz timer while the lid is open and still
-  - **band:** one tick per display frame, through `NSScreen.displayLink`, while the lid is in or entering the effect range
+  - **idle:** a 10 Hz timer while the lid is still, including while a held blur is on screen
+  - **band:** one tick per display frame, through `NSScreen.displayLink`, while the lid moves or the blur is still easing
   - **stopped:** no ticks while asleep, disabled or unsupported
 - **`OverlayWindowController`** owns one borderless window on the built-in display. The window:
   - ignores the mouse and can't become key
