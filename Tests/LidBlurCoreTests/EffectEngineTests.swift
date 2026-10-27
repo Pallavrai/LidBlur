@@ -88,12 +88,12 @@ final class EffectEngineTests: XCTestCase {
     func testLowAngleTypingClearsWithinOneSecond() {
         // Close to 45° then hold while typing.
         let run = replay(duration: 3, angle: close(to: 45, seconds: 0.3)) { t, input in
-            if t > 0.6 { input.secondsSinceInput = 0.2 }
+            if t > 1 { input.secondsSinceInput = 0 }
         }
-        // Typing starts at 0.6 s; the ease-out fade takes about 1 s.
-        XCTAssertEqual(run.at(2.0).level, 0)
-        XCTAssertFalse(run.at(2.0).windowVisible)
-        XCTAssertEqual(run.at(2.0).reason, .dismissed)
+        // Typing starts at 1 s; the ease-out fade takes about 1 s.
+        XCTAssertEqual(run.at(2.1).level, 0)
+        XCTAssertFalse(run.at(2.1).windowVisible)
+        XCTAssertEqual(run.at(2.1).reason, .dismissed)
     }
 
     func testHoldingTheLidKeepsTheBlur() {
@@ -182,6 +182,15 @@ final class EffectEngineTests: XCTestCase {
         let run = replay(duration: 1, angle: { t in t > 0.4 ? 900 : trace(t) })
         XCTAssertEqual(run.at(0.45).level, 0)
         XCTAssertEqual(run.at(0.45).appState, .unsupported)
+    }
+
+    func testInputWhileMovingTheLidIsIgnored() {
+        // Typing right up to the close, then a hand brushing the trackpad throughout closing and opening.
+        let trace: (Double) -> Double = { t in t < 0.6 ? close(to: 30, seconds: 0.3)(t) : min(100, 30 + (t - 0.6) * 100) }
+        let run = replay(duration: 1.2, angle: trace) { _, input in input.secondsSinceInput = 0 }
+        XCTAssertGreaterThan(run.at(0.5).level, 0.8)          // closing still blurs
+        XCTAssertNotEqual(run.at(0.9).reason, .dismissed)     // opening still recedes with the lid
+        XCTAssertGreaterThan(run.at(0.9).level, 0.4)
     }
 
     func testOpeningRecedesWithTheLid() {

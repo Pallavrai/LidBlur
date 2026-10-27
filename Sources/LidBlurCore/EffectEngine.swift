@@ -11,6 +11,8 @@ public enum EngineConstants {
     public static let defaultFullAngle = 20.0
     public static let calibrationMargin = 5.0
     public static let inputTimeout = 1.5
+    /// Input counts only after the lid has been still this long, so a hand on the lid that brushes the trackpad doesn't.
+    public static let stillBeforeInput = 0.25
     public static let downMoveDegrees = 0.5
     /// Longer than the idle poll interval (0.1 s) so a sudden tilt is seen between two idle samples.
     public static let downMoveWindow = 0.15
@@ -89,6 +91,7 @@ public struct EngineMemory: Sendable {
     var history: [(time: TimeInterval, angle: Double)] = []
     /// Set by keyboard/pointer input (or the watchdog); cleared when the lid closes further.
     var dismissed = false
+    var lastMoveTime: TimeInterval?
     var lastStepTime: TimeInterval?
     var level = 0.0
     var highLevelSince: TimeInterval?
@@ -168,14 +171,21 @@ public enum EffectEngine {
         }
         m.history.removeAll { sample.time - $0.time > K.downMoveWindow }
         let f = m.filteredAngle!
-        let movingDown = f - (m.history.first?.angle ?? f) <= -K.downMoveDegrees
+        let delta = f - (m.history.first?.angle ?? f)
+        let movingDown = delta <= -K.downMoveDegrees
+        if abs(delta) >= K.downMoveDegrees { m.lastMoveTime = input.now }
 
         let fullAngle = min(input.fullAngle, input.startAngle - K.minBandWidth)
         let t = min(max((input.startAngle - f) / (input.startAngle - fullAngle), 0), 1)
         let raw = t * t * (3 - 2 * t)
 
-        // Input dismisses the blur until the lid closes further; holding the lid still keeps it.
-        if input.secondsSinceInput < K.inputTimeout { m.dismissed = true } else if movingDown { m.dismissed = false }
+        // Input while the lid is held still dismisses the blur until the lid closes further.
+        let inputTime = input.now - input.secondsSinceInput
+        if input.secondsSinceInput < K.inputTimeout, inputTime - (m.lastMoveTime ?? -.infinity) > K.stillBeforeInput {
+            m.dismissed = true
+        } else if movingDown {
+            m.dismissed = false
+        }
 
         // Holding or opening: the blur stays or recedes with the lid, never grows without closing motion,
         // so a low angle seen right after wake can't bring the blur back by itself.
