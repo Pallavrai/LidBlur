@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-27
+
+### Fixed
+
+- **Hand on the lid:** touching the trackpad or keyboard while the lid is moving no longer cancels the blur. Input clears the blur only while the lid is held still, so it now grows while closing and recedes while opening as intended.
+
 ## [0.1.1] - 2026-10-27
 
 ### Added
@@ -39,6 +45,7 @@ All notable changes to this project are documented in this file. The format is b
 - **Menu items:** Preview Effect, Copy Diagnostics, Launch at Login, and a welcome window.
 - **Homebrew:** a cask in this repository.
 
-[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Pallavrai/LidBlur/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Pallavrai/LidBlur/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Pallavrai/LidBlur/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Pallavrai/LidBlur/releases/tag/v0.1.0

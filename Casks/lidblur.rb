@@ -1,6 +1,6 @@
 cask "lidblur" do
-  version "0.1.1"
-  sha256 "2a415be3aa1e9a88bbb93f2173ea2c0c7819c7b588e0684f9f2643c9478256c2"
+  version "0.1.2"
+  sha256 "a2f9350c4edc6816a580da91a3c6676764bdef2a1717b5ad06958b0e87dc421f"
 
   url "https://github.com/Pallavrai/LidBlur/releases/download/v#{version}/LidBlur-#{version}.dmg"
   name "LidBlur"
